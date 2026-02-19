@@ -1,16 +1,359 @@
-<!doctype html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Evereste - Gestão de Crises</title>
-    <!-- Importando Tailwind via CDN para simplificar o setup sem build complexo, 
-         embora em produção o ideal seja via PostCSS -->
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gincana Evereste 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:ital,wght@1,400;1,700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .font-serif-italic { font-family: 'Playfair Display', serif; font-style: italic; }
+        
+        .tab-active {
+            background-color: #1d4ed8; /* blue-700 */
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1e3a8a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-blue-900 text-white p-6 shadow-xl sticky top-0 z-40 border-b-4 border-yellow-500">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black uppercase tracking-tighter italic">Gincana Evereste</h1>
+                <p class="text-blue-300 text-xs font-bold uppercase tracking-widest">Nuvem • 2026</p>
+            </div>
+            <div class="bg-yellow-500 p-2 rounded-lg shadow-inner">
+                <i data-lucide="trophy" class="text-blue-900 w-6 h-6"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto pb-32 p-4">
+        
+        <!-- Navigation Tabs -->
+        <nav class="flex bg-white rounded-2xl shadow-sm mb-6 p-1 border border-slate-200">
+            <button id="tab-gallery" onclick="switchTab('gallery')" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all tab-active text-xs">
+                <i data-lucide="book-open" class="w-4 h-4"></i> Mural
+            </button>
+            <button id="tab-write" onclick="switchTab('write')" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-slate-500 hover:bg-slate-50 text-xs">
+                <i data-lucide="send" class="w-4 h-4"></i> Participar
+            </button>
+            <button id="tab-rules" onclick="switchTab('rules')" class="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-slate-500 hover:bg-slate-50 text-xs">
+                <i data-lucide="scroll-text" class="w-4 h-4"></i> Regras
+            </button>
+        </nav>
+
+        <!-- Loading Overlay -->
+        <div id="loading-screen" class="flex flex-col items-center justify-center py-20 text-blue-900">
+            <div class="loader mb-4"></div>
+            <p id="loading-text" class="font-bold animate-pulse">A ligar ao servidor...</p>
+        </div>
+
+        <!-- Section: Gallery (Mural) -->
+        <section id="view-gallery" class="hidden space-y-6">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                <input 
+                    type="text" 
+                    id="search-input"
+                    oninput="handleSearch()"
+                    placeholder="Pesquisar poeta ou título..."
+                    class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                >
+            </div>
+
+            <div id="mural-container" class="space-y-6">
+                <!-- Poemas serão inseridos aqui -->
+            </div>
+        </section>
+
+        <!-- Section: Write (Participar) -->
+        <section id="view-write" class="hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                <h2 class="text-lg font-black text-blue-900 mb-6 flex items-center gap-2 uppercase tracking-tighter">
+                    <i data-lucide="message-square" class="text-blue-600"></i> Nova Inscrição
+                </h2>
+                <form id="poem-form" class="space-y-4">
+                    <input 
+                        required
+                        id="form-title"
+                        placeholder="Título do Poema"
+                        class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                    <div class="grid grid-cols-2 gap-3">
+                        <input 
+                            required
+                            id="form-author"
+                            placeholder="Seu Nome"
+                            class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                        <input 
+                            id="form-dept"
+                            placeholder="Setor"
+                            class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                    </div>
+                    <textarea 
+                        required
+                        id="form-content"
+                        rows="6"
+                        placeholder="Digite seu poema manualmente..."
+                        class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-serif-italic text-base leading-relaxed focus:ring-2 focus:ring-blue-500 outline-none"
+                    ></textarea>
+                    
+                    <div class="flex gap-2 pt-2">
+                        <button 
+                            type="button"
+                            onclick="clearForm()"
+                            class="flex-1 bg-white text-slate-400 py-4 rounded-xl font-bold border border-slate-200 text-xs active:scale-95 transition-transform"
+                        >
+                            <i data-lucide="eraser" class="inline w-4 h-4 mr-1"></i> Limpar
+                        </button>
+                        <button 
+                            type="submit"
+                            class="flex-[2] bg-blue-700 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg text-xs active:scale-95 transition-transform flex items-center justify-center gap-2"
+                        >
+                            <i data-lucide="send" class="w-4 h-4"></i> Publicar Obra
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Section: Rules (Regras) -->
+        <section id="view-rules" class="hidden">
+            <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                <h2 class="text-lg font-black text-blue-900 mb-6 flex items-center gap-2 uppercase tracking-tighter border-b pb-2">
+                    <i data-lucide="scroll-text" class="text-blue-600"></i> Regulamento 2026
+                </h2>
+                <div id="rules-content" class="text-sm text-slate-700 space-y-4 leading-relaxed">
+                    <!-- Regras do Firebase aparecerão aqui -->
+                    <p class="animate-pulse">A carregar regras...</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Stats -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-blue-900 text-white border-t-2 border-yellow-500 p-4 z-40">
+        <div class="max-w-md mx-auto flex justify-around items-center">
+            <div class="flex flex-col items-center">
+                <span id="stat-count" class="font-black text-yellow-400 text-xl leading-none">0</span>
+                <span class="uppercase tracking-tighter text-[8px] font-bold text-blue-200">Obras</span>
+            </div>
+            <div class="h-8 w-px bg-blue-800"></div>
+            <div class="flex flex-col items-center">
+                <span id="stat-likes" class="font-black text-yellow-400 text-xl leading-none">0</span>
+                <span class="uppercase tracking-tighter text-[8px] font-bold text-blue-200">Votos</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyCw5S-oUqg2-D25fl1-OQsS2xbQ7OmZzgA", 
+                authDomain: "gincana2026-cae5e.firebaseapp.com",
+                projectId: "gincana2026-cae5e",
+                storageBucket: "gincana2026-cae5e.firebasestorage.app",
+                messagingSenderId: "12553833431",
+                appId: "1:12553833431:web:e07e2b65843bfd15949992",
+                measurementId: "G-GFRL40RGQ8"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appIdStr = typeof __app_id !== 'undefined' ? __app_id : "gincana2026-evereste";
+
+        let allPoems = [];
+        let currentUserId = null;
+
+        // --- Inicialização ---
+        async function startApp() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUserId = cred.user.uid;
+                } else {
+                    const cred = await signInAnonymously(auth);
+                    currentUserId = cred.user.uid;
+                }
+                
+                initMuralListener();
+                initRulesListener();
+            } catch (err) {
+                console.error("Erro auth:", err);
+                document.getElementById('loading-text').innerHTML = "Erro de ligação.";
+            }
+        }
+
+        // --- Regras em Tempo Real ---
+        function initRulesListener() {
+            const rulesRef = doc(db, 'artifacts', appIdStr, 'public', 'data', 'config', 'rules');
+            
+            onSnapshot(rulesRef, (docSnap) => {
+                const contentDiv = document.getElementById('rules-content');
+                if (docSnap.exists()) {
+                    contentDiv.innerHTML = docSnap.data().htmlContent || "<p>Regras em breve.</p>";
+                } else {
+                    // Inicializar regras padrão se não existirem no DB
+                    const defaultRules = `
+                        <p><strong>1. Participação:</strong> Aberto a todos os colaboradores.</p>
+                        <p><strong>2. Inscrição:</strong> Via formulário digital com nome e setor.</p>
+                        <p><strong>3. Votação:</strong> Através de curtidas no mural.</p>
+                        <p><strong>4. Moderação:</strong> Linguagem ofensiva será removida.</p>
+                    `;
+                    contentDiv.innerHTML = defaultRules;
+                    // Salvar padrão no Firebase se for o primeiro acesso
+                    setDoc(rulesRef, { htmlContent: defaultRules });
+                }
+            });
+        }
+
+        // --- Mural em Tempo Real ---
+        function initMuralListener() {
+            const poemsCol = collection(db, 'artifacts', appIdStr, 'public', 'data', 'poems');
+            onSnapshot(poemsCol, (snapshot) => {
+                allPoems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allPoems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                document.getElementById('loading-screen').classList.add('hidden');
+                
+                const galleryView = document.getElementById('view-gallery');
+                const writeView = document.getElementById('view-write');
+                const rulesView = document.getElementById('view-rules');
+                if (galleryView.classList.contains('hidden') && writeView.classList.contains('hidden') && rulesView.classList.contains('hidden')) {
+                    switchTab('gallery');
+                }
+                renderMural();
+                updateStats();
+            });
+        }
+
+        // --- Renderização ---
+        window.renderMural = function() {
+            const container = document.getElementById('mural-container');
+            const queryText = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allPoems.filter(p => (p.title?.toLowerCase() || "").includes(queryText) || (p.author?.toLowerCase() || "").includes(queryText));
+
+            container.innerHTML = filtered.length === 0 ? '<div class="text-center py-10 text-slate-400 bg-white rounded-2xl border border-dashed border-slate-300">Nenhum poema encontrado.</div>' : '';
+
+            filtered.forEach(poem => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden relative animate-in fade-in";
+                card.innerHTML = `
+                    <div id="delete-overlay-${poem.id}" class="absolute inset-0 z-20 bg-red-600/95 flex flex-col items-center justify-center p-4 text-white hidden">
+                        <i data-lucide="trash-2" class="w-8 h-8 mb-2"></i>
+                        <p class="font-bold text-center mb-4 text-xs">Apagar definitivamente?</p>
+                        <div class="flex gap-2 w-full">
+                            <button onclick="toggleDeleteOverlay('${poem.id}', false)" class="flex-1 py-2 bg-white/20 rounded-lg text-xs">NÃO</button>
+                            <button onclick="executeDeletePoem('${poem.id}')" class="flex-1 py-2 bg-white text-red-600 rounded-lg font-bold text-xs">SIM</button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-2 flex justify-between items-center border-b">
+                        <span class="text-[9px] font-black text-slate-400 uppercase italic">Evereste-2026</span>
+                        <button onclick="toggleDeleteOverlay('${poem.id}', true)" class="text-slate-300 hover:text-red-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="text-md font-black text-blue-900 italic mb-2 leading-tight uppercase">"${poem.title}"</h3>
+                        <p class="text-slate-700 whitespace-pre-line leading-relaxed mb-6 font-serif-italic text-[1rem]">${poem.content}</p>
+                        <div class="flex items-end justify-between mb-4">
+                            <div><p class="text-xs font-black text-blue-800 uppercase tracking-tighter">${poem.author}</p><p class="text-[9px] text-slate-400 font-bold">${poem.department || 'Geral'} • ${poem.timestamp}</p></div>
+                            <div class="text-right text-red-500 font-black flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4 fill-current"></i> ${poem.likes || 0}</div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-4 border-t">
+                            <button onclick="updateVote('${poem.id}', -1)" class="flex flex-col items-center py-2 bg-slate-50 rounded-lg"><i data-lucide="minus" class="w-4 h-4"></i><span class="text-[7px] font-bold mt-1">RETIRAR</span></button>
+                            <button onclick="updateVote('${poem.id}', 0, true)" class="flex flex-col items-center py-2 bg-slate-50 rounded-lg"><i data-lucide="refresh-cw" class="w-3 h-3"></i><span class="text-[7px] font-bold mt-1">ZERAR</span></button>
+                            <button onclick="updateVote('${poem.id}', 1)" class="flex flex-col items-center py-2 bg-blue-50 text-blue-700 rounded-lg"><i data-lucide="plus" class="w-4 h-4"></i><span class="text-[7px] font-bold mt-1">VOTAR</span></button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // --- Funções Globais ---
+        window.switchTab = function(tab) {
+            const views = ['view-gallery', 'view-write', 'view-rules'];
+            const tabs = ['tab-gallery', 'tab-write', 'tab-rules'];
+            
+            views.forEach(v => document.getElementById(v).classList.add('hidden'));
+            tabs.forEach(t => {
+                document.getElementById(t).classList.remove('tab-active');
+                document.getElementById(t).classList.add('text-slate-500');
+            });
+
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+            document.getElementById(`tab-${tab}`).classList.remove('text-slate-500');
+        }
+
+        window.handleSearch = function() { renderMural(); }
+        window.clearForm = function() { document.getElementById('poem-form').reset(); }
+        window.toggleDeleteOverlay = function(id, show) {
+            const el = document.getElementById(`delete-overlay-${id}`);
+            el.classList.toggle('hidden', !show);
+        }
+        window.executeDeletePoem = async function(id) { await deleteDoc(doc(db, 'artifacts', appIdStr, 'public', 'data', 'poems', id)); }
+        window.updateVote = async function(id, delta, reset = false) {
+            const poemRef = doc(db, 'artifacts', appIdStr, 'public', 'data', 'poems', id);
+            const current = allPoems.find(p => p.id === id);
+            if (current) await updateDoc(poemRef, { likes: reset ? 0 : Math.max(0, (current.likes || 0) + delta) });
+        }
+        window.updateStats = function() {
+            document.getElementById('stat-count').innerText = allPoems.length;
+            document.getElementById('stat-likes').innerText = allPoems.reduce((acc, curr) => acc + (curr.likes || 0), 0);
+        }
+
+        document.getElementById('poem-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const poemId = Date.now().toString();
+            await setDoc(doc(db, 'artifacts', appIdStr, 'public', 'data', 'poems', poemId), {
+                title: document.getElementById('form-title').value,
+                author: document.getElementById('form-author').value,
+                department: document.getElementById('form-dept').value,
+                content: document.getElementById('form-content').value,
+                likes: 0,
+                timestamp: new Date().toLocaleDateString('pt-PT'),
+                createdAt: Date.now(),
+                createdBy: currentUserId
+            });
+            clearForm();
+            switchTab('gallery');
+        });
+
+        startApp();
+        lucide.createIcons();
+    </script>
+</body>
 </html>
